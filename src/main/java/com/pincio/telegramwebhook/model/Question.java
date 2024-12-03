@@ -1,9 +1,13 @@
 
 package com.pincio.telegramwebhook.model;
 
+import org.springframework.data.redis.core.RedisHash;
+
+import java.io.Serializable;
 import java.util.List;
 
-public class Question {
+@RedisHash("Question")
+public class Question implements Serializable {
     private String id;
     private String questionText;
     private List<String> answers;
