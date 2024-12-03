@@ -1,2 +1,4 @@
 /.idea
 /telegram-webhook.iml
+/target
+/.vscode
