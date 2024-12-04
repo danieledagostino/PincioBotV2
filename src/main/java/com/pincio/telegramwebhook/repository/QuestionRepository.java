@@ -4,6 +4,8 @@ import com.pincio.telegramwebhook.model.Question;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,5 +34,17 @@ public class QuestionRepository {
     // Elimina una domanda per ID
     public void deleteById(String id) {
         redisTemplate.opsForHash().delete("questions", id);
+    }
+
+    // Trova tutte le domande
+    public List<Question> findAll() {
+        List<Object> questions = redisTemplate.opsForHash().values("questions");
+        List<Question> result = new ArrayList<>();
+        for (Object obj : questions) {
+            if (obj instanceof Question) {
+                result.add((Question) obj);
+            }
+        }
+        return result;
     }
 }
