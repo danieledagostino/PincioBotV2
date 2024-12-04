@@ -7,11 +7,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 public class RedisConf {
 
-    @Value("${spring.redis.host}")
-    private final String REDIS_HOST = "localhost";
+    @Value("${redis.host}")
+    private String REDIS_HOST;
 
-    @Value("${spring.redis.port}")
-    private final int REDIS_PORT = 6379;
+    @Value("${redis.port}")
+    private int REDIS_PORT;
 
 
     @Bean
