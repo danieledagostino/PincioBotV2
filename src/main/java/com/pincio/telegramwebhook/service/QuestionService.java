@@ -4,6 +4,7 @@ package com.pincio.telegramwebhook.service;
 import com.pincio.telegramwebhook.config.TelegramBotConfig;
 import com.pincio.telegramwebhook.model.Question;
 import com.pincio.telegramwebhook.repository.QuestionRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
@@ -14,6 +15,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import java.util.*;
 
 @Service
+@Slf4j
 public class QuestionService {
 
     @Autowired
@@ -30,10 +32,20 @@ public class QuestionService {
         Optional<Question> existingQuestion = findSimilarQuestion(questionText);
 
         if (existingQuestion.isPresent()) {
-            String suggestedResponse = aiResponseService.suggestResponse(
-                questionText, Map.of(existingQuestion.get().getQuestionText(), existingQuestion.get().getConfirmedAnswer())
-            );
-            respondToUser(update, suggestedResponse);
+            try {
+                String suggestedResponse = aiResponseService.suggestResponse(
+                        questionText,
+                        Map.of(
+                                existingQuestion.get().getQuestionText(),
+                                existingQuestion.get().getConfirmedAnswer() != null ?
+                                        existingQuestion.get().getConfirmedAnswer() :
+                                        "Nessuna risposta confermata disponibile"
+                        )
+                );
+                respondToUser(update, suggestedResponse);
+            } catch (Exception e) {
+                log.error("Errore durante la risposta alla domanda", e);
+            }
         } else {
             Question question = new Question(UUID.randomUUID().toString(), questionText, new ArrayList<>(), null);
             questionRepository.save(question);
@@ -47,24 +59,35 @@ public class QuestionService {
 
     private Optional<Question> findSimilarQuestion(String questionText) {
         List<Question> allQuestions = new ArrayList<>();
-        questionRepository.findAll().forEach(allQuestions::add);
-        return allQuestions.stream()
-                .filter(q -> aiResponseService.calculateSimilarity(questionText, q.getQuestionText()) > 0.8)
-                .findFirst();
+        try {
+            questionRepository.findAll().forEach(allQuestions::add);
+            return allQuestions.stream()
+                    .filter(q -> aiResponseService.calculateSimilarity(questionText, q.getQuestionText()) > 0.8)
+                    .findFirst();
+        } catch (Exception e) {
+            log.error("Errore durante il recupero delle domande", e);
+            return Optional.empty();
+        }
     }
 
     private void notifyAdmin(String questionText) {
         // TODO: Add logic to notify admin about a new question
     }
 
-    public void confirmResponse(String questionId, String answer) {
-        // Recupera la domanda dal database
-        Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new IllegalArgumentException("Domanda non trovata con ID: " + questionId));
+    public void confirmResponse(String questionId, String confirmedAnswer) {
+        Optional<Question> existingQuestion = questionRepository.findById(questionId);
+        if (existingQuestion.isPresent()) {
+            Question question = existingQuestion.get();
+            question.setConfirmedAnswer(confirmedAnswer); // Imposta la risposta confermata
+            questionRepository.save(question); // Salva l'oggetto aggiornato
+        } else {
+            log.warn("Domanda non trovata con ID: {}", questionId);
+        }
 
-        // Aggiorna la risposta confermata
-        question.setConfirmedAnswer(answer);
-        questionRepository.save(question);
+        log.debug("Domanda: {}, Risposta confermata: {}",
+                existingQuestion.get().getQuestionText(),
+                existingQuestion.get().getConfirmedAnswer());
+
     }
 
     public void respondToUser(Map<String, Object> update, String response) {
@@ -86,6 +109,20 @@ public class QuestionService {
 
     private String extractChatId(Map<String, Object> update) {
         Map<String, Object> message = (Map<String, Object>) update.get("message");
-        return String.valueOf(message.get("chat_id"));
+        String chatId = null;
+        if (message.get("chat") != null)
+            chatId = ((Map<String, Object>)message.get("chat")).get("id").toString();
+        return chatId;
+    }
+
+    public void saveQuestion(String questionText) {
+        // Creiamo un oggetto Question con il testo della domanda
+        Question question = new Question();
+        question.setQuestionText(questionText);
+        question.setConfirmedAnswer(null); // Inizialmente non c'è risposta confermata
+        question.setConfirmed(false); // La domanda non è confermata inizialmente
+
+        // Salviamo la domanda nel repository (in Redis o un altro database)
+        questionRepository.save(question);
     }
 }

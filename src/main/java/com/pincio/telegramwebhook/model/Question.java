@@ -1,54 +1,29 @@
-
 package com.pincio.telegramwebhook.model;
 
+import lombok.Data;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 
-import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
+@Data
 @RedisHash("Question")
-public class Question implements Serializable {
+public class Question {
+    @Id
     private String id;
     private String questionText;
-    private List<String> answers;
-    private String confirmedAnswer;
+    private List<String> possibleAnswers; // Lista delle risposte proposte
+    private String confirmedAnswer; // La risposta confermata
+    private Boolean confirmed; // Indica se la risposta è stata confermata
 
-    public Question(String id, String questionText, List<String> answers, String confirmedAnswer) {
+    public Question() {
+    }
+
+    public Question(String id, String questionText, List<String> possibleAnswers, String confirmedAnswer) {
         this.id = id;
         this.questionText = questionText;
-        this.answers = answers;
-        this.confirmedAnswer = confirmedAnswer;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getQuestionText() {
-        return questionText;
-    }
-
-    public void setQuestionText(String questionText) {
-        this.questionText = questionText;
-    }
-
-    public List<String> getAnswers() {
-        return answers;
-    }
-
-    public void setAnswers(List<String> answers) {
-        this.answers = answers;
-    }
-
-    public String getConfirmedAnswer() {
-        return confirmedAnswer;
-    }
-
-    public void setConfirmedAnswer(String confirmedAnswer) {
+        this.possibleAnswers = new ArrayList<>();
         this.confirmedAnswer = confirmedAnswer;
     }
 }

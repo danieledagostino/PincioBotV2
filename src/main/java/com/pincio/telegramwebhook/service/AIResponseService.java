@@ -36,13 +36,20 @@ public class AIResponseService {
         return text.toLowerCase().chars().mapToDouble(c -> c).toArray();
     }
 
-    private double cosineSimilarity(double[] vectorA, double[] vectorB) {
-        double dotProduct = 0.0, normA = 0.0, normB = 0.0;
-        for (int i = 0; i < vectorA.length; i++) {
+    public double cosineSimilarity(double[] vectorA, double[] vectorB) {
+        int length = Math.min(vectorA.length, vectorB.length);
+
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+
+        for (int i = 0; i < length; i++) {
             dotProduct += vectorA[i] * vectorB[i];
             normA += Math.pow(vectorA[i], 2);
             normB += Math.pow(vectorB[i], 2);
         }
+
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
+
 }
