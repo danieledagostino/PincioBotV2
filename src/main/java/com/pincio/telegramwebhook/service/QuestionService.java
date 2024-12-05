@@ -103,7 +103,7 @@ public class QuestionService {
 
             bot.execute(message); // Invia il messaggio
         } catch (TelegramApiException e) {
-            e.printStackTrace(); // Gestione dell'errore
+            log.error("Errore durante l'invio del messaggio", e);
         }
     }
 

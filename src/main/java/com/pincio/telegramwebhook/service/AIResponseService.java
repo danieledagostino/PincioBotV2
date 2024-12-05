@@ -3,6 +3,7 @@ package com.pincio.telegramwebhook.service;
 
 import com.pincio.telegramwebhook.model.Question;
 import com.pincio.telegramwebhook.repository.QuestionRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
+@Slf4j
 public class AIResponseService {
 
     @Autowired
@@ -115,12 +117,15 @@ public class AIResponseService {
             HttpEntity entity = client.execute(post).getEntity();
             String response = EntityUtils.toString(entity);
 
+            if (response == null || response.isEmpty()) {
+                log.warn("Empty response from model");
+            }
             JSONObject jsonResponse = new JSONObject(response);
             // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
             double score = jsonResponse.getJSONArray("scores").getDouble(0);
             return score > 0.5; // Se la probabilità che sia una domanda è > 50%
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error while calling model", e);
             return false;
         }
     }
