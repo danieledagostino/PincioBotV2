@@ -86,6 +86,13 @@
             <version>5.2</version> <!-- Usa una versione stabile -->
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.springframework.ai/spring-ai-huggingface -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-huggingface</artifactId>
+            <version>1.0.0-M4</version>
+        </dependency>
+        
 
     </dependencies>
 

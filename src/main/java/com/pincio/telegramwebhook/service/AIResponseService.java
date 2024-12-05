@@ -115,24 +115,13 @@ public class AIResponseService {
     public boolean isQuestionUsingML(String message) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(nglToken);
+            HuggingfaceChatModel chatModel = new HuggingfaceChatModel(nglToken, MODEL_URL);
+            Map response = Map.of("generation", this.chatModel.call(message));
 
-            String body = "{\"inputs\": \"" + message + "\"}";
-
-            // Esegui la chiamata POST
-            ResponseEntity<String> response = restTemplate.postForEntity(MODEL_URL, body, String.class);
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                JSONObject jsonResponse = new JSONObject(response.getBody());
-                // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
-                double score = jsonResponse.getJSONArray("scores").getDouble(0);
-                return score > 0.5; // Se la probabilità che sia una domanda è > 50%
-            } else {
-                log.warn("Empty response from model");
-                throw new RuntimeException("Errore API: " + response.getStatusCode());
-            }
+            JSONObject jsonResponse = new JSONObject(response);
+            // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
+            double score = jsonResponse.getJSONArray("scores").getDouble(0);
+            return score > 0.5; // Se la probabilità che sia una domanda è > 50%
 
         } catch (Exception e) {
             log.error("Error while calling model", e);
