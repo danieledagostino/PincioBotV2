@@ -115,13 +115,36 @@ public class AIResponseService {
     public boolean isQuestionUsingML(String message) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
 
-            HuggingfaceChatModel chatModel = new HuggingfaceChatModel(nglToken, MODEL_URL);
-            Map response = Map.of("generation", this.chatModel.call(message));
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(nglToken);
 
-            JSONObject jsonResponse = new JSONObject(response);
-            // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
-            double score = jsonResponse.getJSONArray("scores").getDouble(0);
-            return score > 0.5; // Se la probabilità che sia una domanda è > 50%
+            String body = "{\"inputs\": \"" + message + "\"}";
+
+            // Esegui la chiamata POST
+            ResponseEntity<String> response = restTemplate.postForEntity(MODEL_URL, body, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Response from model: {}", response.getBody());
+                JSONObject jsonResponse = new JSONObject(response.getBody());
+                // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
+                double score = jsonResponse.getJSONArray("scores").getDouble(0);
+                return score > 0.5; // Se la probabilità che sia una domanda è > 50%
+            } else {
+                log.warn("Empty response from model");
+                throw new RuntimeException("Errore API: " + response.getStatusCode());
+            }
+
+            /**
+
+             HuggingfaceChatModel chatModel = new HuggingfaceChatModel(nglToken, MODEL_URL);
+             Map response = Map.of("generation", this.chatModel.call(message));
+
+             JSONObject jsonResponse = new JSONObject(response);
+             // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
+             double score = jsonResponse.getJSONArray("scores").getDouble(0);
+             return score > 0.5; // Se la probabilità che sia una domanda è > 50%
+             */
 
         } catch (Exception e) {
             log.error("Error while calling model", e);
