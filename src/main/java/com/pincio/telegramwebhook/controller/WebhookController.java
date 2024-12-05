@@ -1,40 +1,93 @@
 
 package com.pincio.telegramwebhook.controller;
 
+import com.pincio.telegramwebhook.model.Question;
+import com.pincio.telegramwebhook.repository.QuestionRepository;
+import com.pincio.telegramwebhook.service.AIResponseService;
 import com.pincio.telegramwebhook.service.QuestionService;
-import com.pincio.telegramwebhook.service.MessageProcessingService;
+import com.pincio.telegramwebhook.service.TelegramService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/webhook")
+@Slf4j
 public class WebhookController {
-
-    @Autowired
-    private MessageProcessingService messageProcessingService;
 
     @Autowired
     private QuestionService questionService;
 
+    @Autowired
+    private QuestionRepository questionRepository;
+
+    @Autowired
+    private AIResponseService aiResponseService;
+
+    @Autowired
+    private TelegramService telegramService;
+
     @PostMapping
-    public void receiveMessage(@RequestBody String jsonPayload) {
-        // Parse JSON and extract message text (questo dipende dal formato effettivo del payload)
-        String userMessage = extractMessageText(jsonPayload);
+    public ResponseEntity<String> receiveMessage(@RequestBody Map<String, Object> update) {
+        try {
+            Map<String, Object> message = (Map<String, Object>) update.get("message");
+            if (message == null) {
+                return ResponseEntity.ok("No message found.");
+            }
 
-        // Verifica se il messaggio è una domanda
-        boolean isQuestion = messageProcessingService.isQuestion(userMessage);
+            String text = (String) message.get("text");
+            Integer userId = (Integer) ((Map<String, Object>) message.get("from")).get("id");
+            Map<String, Object> replyToMessage = (Map<String, Object>) message.get("reply_to_message");
 
-        if (isQuestion) {
-            // Logica per trattare la domanda (es. salva in Redis, etc.)
-            questionService.saveQuestion(userMessage);
-        } else {
-            // Logica per trattare un messaggio che non è una domanda
-            System.out.println("Messaggio non identificato come domanda: " + userMessage);
+            if (replyToMessage != null) {
+                // Gestione della risposta associata a una domanda
+                String questionText = (String) replyToMessage.get("text");
+                Question question = questionRepository.findById(questionText).orElse(null);
+
+                if (question != null) {
+                    // Aggiungi la risposta alla domanda in Redis
+                    question.addPossibleAnswer(text);
+                    questionRepository.save(question);
+                    telegramService.sendMessage(userId, "Grazie! La tua risposta è stata aggiunta per la domanda: \"" + questionText + "\".");
+                    return ResponseEntity.ok("Reply saved.");
+                } else {
+                    telegramService.sendMessage(userId, "La domanda a cui hai risposto non è stata trovata.");
+                    return ResponseEntity.ok("Reply question not found.");
+                }
+            }
+
+            if (text != null && aiResponseService.isQuestionUsingML(text)) {
+                // Controlla se esiste già una risposta
+                String response = aiResponseService.getBestResponse(text);
+
+                if (response != null) {
+                    telegramService.sendMessage(userId, response);
+                } else {
+                    // Salva la domanda in Redis
+                    Question newQuestion = new Question();
+                    newQuestion.setQuestionText(text);
+                    questionRepository.save(newQuestion);
+
+                    telegramService.sendMessage(userId, "Grazie per la domanda! Sto imparando e presto avrò una risposta.");
+                }
+
+                return ResponseEntity.ok("Question processed.");
+            }
+
+            return ResponseEntity.ok("Message received but not relevant.");
+        } catch (Exception e) {
+            log.error("Error in receiveMessage: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing message.");
         }
     }
+
 
     // Metodo per estrarre il testo del messaggio dal JSON
     private String extractMessageText(String jsonPayload) {

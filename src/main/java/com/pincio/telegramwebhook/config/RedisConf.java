@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 @Slf4j
@@ -38,6 +40,10 @@ public class RedisConf {
         try {
             template = new RedisTemplate<>();
             template.setConnectionFactory(jedisConnectionFactory());
+
+            // Configura il serializzatore per chiavi e valori
+            template.setKeySerializer(new StringRedisSerializer());
+            template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
         }catch (Exception e){
             log.error("Errore durante la configurazione di RedisTemplate");
         }

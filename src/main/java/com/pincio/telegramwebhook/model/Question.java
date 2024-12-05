@@ -1,21 +1,28 @@
 package com.pincio.telegramwebhook.model;
 
 import lombok.Data;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
 @RedisHash("Question")
-public class Question {
-    @Id
+public class Question implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String id;
     private String questionText;
-    private List<String> possibleAnswers; // Lista delle risposte proposte
-    private String confirmedAnswer; // La risposta confermata
-    private Boolean confirmed; // Indica se la risposta è stata confermata
+    private String confirmedAnswer;
+    private boolean confirmed;
+    private List<String> possibleAnswers = new ArrayList<>();
+
+    public void addPossibleAnswer(String answer) {
+        if (!possibleAnswers.contains(answer)) {
+            possibleAnswers.add(answer);
+        }
+    }
 
     public Question() {
     }
