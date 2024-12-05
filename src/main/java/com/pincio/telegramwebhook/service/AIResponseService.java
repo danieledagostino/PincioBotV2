@@ -106,34 +106,6 @@ public class AIResponseService {
         return vector;
     }
 
-
-    public String getBestResponse(String questionText) {
-        List<Question> questions = questionRepository.findAll();
-        if (questions.isEmpty()) {
-            return null;
-        }
-
-        Question bestMatch = null;
-        double bestSimilarity = -1;
-
-        for (Question question : questions) {
-            double similarity = cosineSimilarity(questionText, question.getQuestionText());
-            if (similarity > bestSimilarity) {
-                bestSimilarity = similarity;
-                bestMatch = question;
-            }
-        }
-
-        if (bestSimilarity > 0.7 && bestMatch != null) {
-            // Restituisci la risposta confermata o una risposta possibile
-            return bestMatch.getConfirmedAnswer() != null
-                    ? bestMatch.getConfirmedAnswer()
-                    : (!bestMatch.getPossibleAnswers().isEmpty() ? bestMatch.getPossibleAnswers().get(0) : null);
-        }
-
-        return null;
-    }
-
     public boolean isQuestionUsingML(String message) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpPost post = new HttpPost(MODEL_URL);
@@ -151,6 +123,31 @@ public class AIResponseService {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public String getBestResponse(String questionText) {
+        List<Question> questions = questionRepository.findAll();
+        if (questions.isEmpty()) {
+            return null;
+        }
+
+        double similarityThreshold = 0.7;
+        Question bestMatch = null;
+        double bestSimilarity = -1;
+
+        for (Question question : questions) {
+            double similarity = cosineSimilarity(questionText, question.getQuestionText());
+            if (similarity > bestSimilarity) {
+                bestSimilarity = similarity;
+                bestMatch = question;
+            }
+        }
+
+        if (bestSimilarity >= similarityThreshold && bestMatch != null) {
+            return bestMatch.getConfirmedAnswer(); // Usa la risposta confermata
+        }
+
+        return null; // Nessuna risposta soddisfacente
     }
 
 }

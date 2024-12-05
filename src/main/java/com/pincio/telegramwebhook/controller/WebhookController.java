@@ -55,11 +55,6 @@ public class WebhookController {
                     // Aggiungi la risposta alla domanda in Redis
                     question.addPossibleAnswer(text);
                     questionRepository.save(question);
-                    telegramService.sendMessage(userId, "Grazie! La tua risposta è stata aggiunta per la domanda: \"" + questionText + "\".");
-                    return ResponseEntity.ok("Reply saved.");
-                } else {
-                    telegramService.sendMessage(userId, "La domanda a cui hai risposto non è stata trovata.");
-                    return ResponseEntity.ok("Reply question not found.");
                 }
             }
 
@@ -74,8 +69,6 @@ public class WebhookController {
                     Question newQuestion = new Question();
                     newQuestion.setQuestionText(text);
                     questionRepository.save(newQuestion);
-
-                    telegramService.sendMessage(userId, "Grazie per la domanda! Sto imparando e presto avrò una risposta.");
                 }
 
                 return ResponseEntity.ok("Question processed.");
@@ -95,4 +88,5 @@ public class WebhookController {
         // Utilizza una libreria JSON (come org.json o Jackson) per parsare il JSON
         return "Quando ci sono le lezioni?";  // esempio
     }
+
 }
