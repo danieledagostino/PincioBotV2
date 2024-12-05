@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation</title>
+</head>
+<body>
+<h1>Main Page</h1>
+<p>Welcome! Choose a page to navigate:</p>
+<ul>
+    <!-- La lista dei link viene generata dinamicamente -->
+    <th:block th:each="page : ${pages}">
+        <li><a th:href="${page}" th:text="${page}"></a></li>
+    </th:block>
+</ul>
+</body>
+</html>

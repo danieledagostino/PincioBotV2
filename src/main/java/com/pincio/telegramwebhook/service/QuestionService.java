@@ -27,6 +27,24 @@ public class QuestionService {
     @Autowired
     private TelegramBotConfig botConfig;
 
+    @Autowired
+    private MaskReplacementService maskReplacementService;
+
+    public String getQuestionById(String id) {
+        Optional<Question> question = questionRepository.findById(id);
+        if (question.isPresent()) {
+            return question.get().getQuestionText();
+        } else {
+            return null;
+        }
+    }
+
+    public void saveMaskedQuestion(String originalQuestion) {
+        String maskedQuestion = maskReplacementService.replaceWithMask(originalQuestion);
+        updateReplacementHistory(originalQuestion, maskedQuestion);
+        questionRepository.save(new Question(maskedQuestion));
+    }
+
     public void processUpdate(Map<String, Object> update) {
         String questionText = extractQuestion(update);
         Optional<Question> existingQuestion = findSimilarQuestion(questionText);
@@ -140,4 +158,18 @@ public class QuestionService {
     public Iterable<Question> getAllQuestions() {
         return questionRepository.findAll();
     }
+
+    public void saveUnprocessedQuestion(String questionText) {
+        // Logica per salvare la domanda in Redis o in un altro repository
+        // In Redis, puoi usare il repository QuestionRepository
+        questionRepository.save(new Question(questionText, "Unprocessed"));
+    }
+
+    public void updateReplacementHistory(String originalQuestion, String maskedQuestion) {
+        String replacedWord = originalQuestion.replace(maskedQuestion.replace("[MASK]", "").trim(), "").trim();
+        if (!replacedWord.isEmpty()) {
+            maskReplacementService.recordMaskReplacement(replacedWord);
+        }
+    }
+
 }

@@ -14,6 +14,7 @@
             <th>Question</th>
             <th>Confirmed Answer</th>
             <th>Actions</th>
+            <th>Replaced Words</th>
         </tr>
         </thead>
         <tbody>
@@ -21,6 +22,7 @@
             <td th:text="${question.id}"></td>
             <td th:text="${question.questionText}"></td>
             <td th:text="${question.confirmedAnswer}"></td>
+            <td th:text="${question.replacedWords}"></td>
             <td>
                 <a th:href="@{/question(id=${question.id})}" class="btn btn-primary">Review Answers</a>
             </td>
