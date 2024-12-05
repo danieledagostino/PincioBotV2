@@ -1,6 +1,7 @@
 
 package com.pincio.telegramwebhook.service;
 
+import com.pincio.telegramwebhook.exception.MaskTokenNotFoundException;
 import com.pincio.telegramwebhook.model.Question;
 import com.pincio.telegramwebhook.repository.QuestionRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -9,9 +10,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,7 +24,7 @@ public class AIResponseService {
     private QuestionRepository questionRepository;
 
     @Value("${ngl.token}")
-    private String nglToken;
+    private String huggingFaceToken;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -115,40 +114,54 @@ public class AIResponseService {
     public boolean isQuestionUsingML(String message) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(nglToken);
-
-            String body = "{\"inputs\": \"" + message + "\"}";
-
             // Esegui la chiamata POST
-            ResponseEntity<String> response = restTemplate.postForEntity(MODEL_URL, body, String.class);
+            String response = callHuggingFaceApiWithMask(message);
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Response from model: {}", response.getBody());
-                JSONObject jsonResponse = new JSONObject(response.getBody());
-                // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
-                double score = jsonResponse.getJSONArray("scores").getDouble(0);
-                return score > 0.5; // Se la probabilità che sia una domanda è > 50%
-            } else {
-                log.warn("Empty response from model");
-                throw new RuntimeException("Errore API: " + response.getStatusCode());
-            }
-
-            /**
-
-             HuggingfaceChatModel chatModel = new HuggingfaceChatModel(nglToken, MODEL_URL);
-             Map response = Map.of("generation", this.chatModel.call(message));
-
-             JSONObject jsonResponse = new JSONObject(response);
-             // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
-             double score = jsonResponse.getJSONArray("scores").getDouble(0);
-             return score > 0.5; // Se la probabilità che sia una domanda è > 50%
-             */
+            log.info("Response from model: {}", response);
+            JSONObject jsonResponse = new JSONObject(response);
+            // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
+            double score = jsonResponse.getJSONArray("scores").getDouble(0);
+            return score > 0.5; // Se la probabilità che sia una domanda è > 50%
 
         } catch (Exception e) {
             log.error("Error while calling model", e);
             return false;
+        }
+    }
+
+    public String callHuggingFaceApiWithMask(String prompt) {
+        String url = "https://api-inference.huggingface.co/models/bert-base-uncased";
+
+        // Aggiungi il token [MASK] se non presente
+        if (!prompt.contains("[MASK]")) {
+            try {
+                // Se non c'è il token [MASK], lancia un'eccezione e salva la domanda in Redis
+                throw new MaskTokenNotFoundException("Token [MASK] mancante nella domanda.");
+            } catch (MaskTokenNotFoundException e) {
+                Question question = new Question();
+                question.setQuestionText(prompt);
+                question.setAnswered(false);  // La domanda non è ancora stata risposta
+                questionRepository.save(question);
+                return "La domanda è stata salvata per la revisione.";
+            }
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(huggingFaceToken);  // Usa il tuo token di accesso Hugging Face
+
+        String body = "{\"inputs\": \"" + prompt + "\"}";
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return response.getBody();
+            } else {
+                throw new RuntimeException("Errore API: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Errore durante la chiamata a Hugging Face", e);
         }
     }
 

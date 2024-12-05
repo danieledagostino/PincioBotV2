@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revisiona Domande</title>
+</head>
+<body>
+<h1>Domande da Revisionare</h1>
+<ul>
+    <th:block th:each="question : ${questions}">
+        <li>
+            <form action="/admin/questions/approve" method="post">
+                <input type="hidden" name="question" th:value="${question}">
+                <p th:text="${question}"></p>
+                <button type="submit">Approvare</button>
+            </form>
+        </li>
+    </th:block>
+</ul>
+</body>
+</html>

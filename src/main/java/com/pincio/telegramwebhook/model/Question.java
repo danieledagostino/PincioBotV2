@@ -17,6 +17,8 @@ public class Question implements Serializable {
     private String confirmedAnswer;
     private boolean confirmed;
     private List<String> possibleAnswers = new ArrayList<>();
+    private String response;
+    private boolean isAnswered;
 
     public void addPossibleAnswer(String answer) {
         if (!possibleAnswers.contains(answer)) {

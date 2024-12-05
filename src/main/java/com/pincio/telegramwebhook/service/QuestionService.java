@@ -125,4 +125,19 @@ public class QuestionService {
         // Salviamo la domanda nel repository (in Redis o un altro database)
         questionRepository.save(question);
     }
+
+    // Metodo per aggiornare la risposta di una domanda
+    public void updateQuestionResponse(String questionText, String response) {
+        Question question = questionRepository.findById(questionText).orElse(null);
+        if (question != null) {
+            question.setResponse(response);
+            question.setAnswered(true);  // La domanda è stata risposta
+            questionRepository.save(question);
+        }
+    }
+
+    // Metodo per ottenere tutte le domande da Redis
+    public Iterable<Question> getAllQuestions() {
+        return questionRepository.findAll();
+    }
 }
