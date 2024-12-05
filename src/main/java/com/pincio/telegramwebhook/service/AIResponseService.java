@@ -4,15 +4,16 @@ package com.pincio.telegramwebhook.service;
 import com.pincio.telegramwebhook.model.Question;
 import com.pincio.telegramwebhook.repository.QuestionRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
@@ -25,6 +26,9 @@ public class AIResponseService {
 
     @Value("${ngl.token}")
     private String nglToken;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     private static final String MODEL_URL = "https://api-inference.huggingface.co/models/bert-base-uncased";
 
@@ -110,20 +114,26 @@ public class AIResponseService {
 
     public boolean isQuestionUsingML(String message) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpPost post = new HttpPost(MODEL_URL);
-            post.setHeader("Authorization", "Bearer "+nglToken);
-            post.setEntity(new org.apache.http.entity.StringEntity("{\"inputs\": \"" + message + "\"}"));
 
-            HttpEntity entity = client.execute(post).getEntity();
-            String response = EntityUtils.toString(entity);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(nglToken);
 
-            if (response == null || response.isEmpty()) {
+            String body = "{\"inputs\": \"" + message + "\"}";
+
+            // Esegui la chiamata POST
+            ResponseEntity<String> response = restTemplate.postForEntity(MODEL_URL, body, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JSONObject jsonResponse = new JSONObject(response.getBody());
+                // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
+                double score = jsonResponse.getJSONArray("scores").getDouble(0);
+                return score > 0.5; // Se la probabilità che sia una domanda è > 50%
+            } else {
                 log.warn("Empty response from model");
+                throw new RuntimeException("Errore API: " + response.getStatusCode());
             }
-            JSONObject jsonResponse = new JSONObject(response);
-            // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
-            double score = jsonResponse.getJSONArray("scores").getDouble(0);
-            return score > 0.5; // Se la probabilità che sia una domanda è > 50%
+
         } catch (Exception e) {
             log.error("Error while calling model", e);
             return false;
