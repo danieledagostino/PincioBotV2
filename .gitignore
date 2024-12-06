@@ -2,4 +2,4 @@
 /telegram-webhook.iml
 /target
 /.vscode
-/application-local.properties
+**/application-local.properties
