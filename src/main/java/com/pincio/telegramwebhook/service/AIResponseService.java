@@ -117,11 +117,15 @@ public class AIResponseService {
             // Esegui la chiamata POST
             String response = callHuggingFaceApiWithMask(message);
 
-            log.info("Response from model: {}", response);
-            JSONObject jsonResponse = new JSONObject(response);
-            // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
-            double score = jsonResponse.getJSONArray("scores").getDouble(0);
-            return score > 0.5; // Se la probabilità che sia una domanda è > 50%
+            if (response != null) {
+                log.info("Response from model: {}", response);
+                JSONObject jsonResponse = new JSONObject(response);
+                // Estrai la predizione dal JSON, per esempio un valore che indica se è una domanda
+                double score = jsonResponse.getJSONArray("scores").getDouble(0);
+                return score > 0.5; // Se la probabilità che sia una domanda è > 50%
+            } else {
+                return false;
+            }
 
         } catch (Exception e) {
             log.error("Error while calling model", e);
@@ -142,7 +146,7 @@ public class AIResponseService {
                 question.setQuestionText(prompt);
                 question.setAnswered(false);  // La domanda non è ancora stata risposta
                 questionRepository.save(question);
-                return "La domanda è stata salvata per la revisione.";
+                return null;
             }
         }
 

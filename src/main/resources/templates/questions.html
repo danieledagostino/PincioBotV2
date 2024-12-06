@@ -7,14 +7,16 @@
 <body>
 <div class="container mt-5">
     <h1 class="mb-4">Questions in Redis</h1>
+
     <table class="table table-bordered">
         <thead>
         <tr>
             <th>ID</th>
             <th>Question</th>
             <th>Confirmed Answer</th>
-            <th>Actions</th>
             <th>Replaced Words</th>
+            <th>Sent to HuggingFace</th>
+            <th>Actions</th>
         </tr>
         </thead>
         <tbody>
@@ -24,7 +26,13 @@
             <td th:text="${question.confirmedAnswer}"></td>
             <td th:text="${question.replacedWords}"></td>
             <td>
-                <a th:href="@{/question(id=${question.id})}" class="btn btn-primary">Review Answers</a>
+                <span th:text="${question.sentToHuggingFace ? 'Yes' : 'No'}"></span>
+            </td>
+            <td>
+                <a th:href="@{/question(id=${question.id})}" class="btn btn-primary btn-sm">Review Answers</a>
+                <a th:href="@{/edit-question(id=${question.id})}" class="btn btn-secondary btn-sm">Edit</a>
+                <a th:href="@{/delete-question(id=${question.id})}" class="btn btn-danger btn-sm">Delete</a>
+                <a th:href="@{/admin/questions/{id}(id=${question.id})}" class="btn btn-info btn-sm">View Details</a>
             </td>
         </tr>
         </tbody>

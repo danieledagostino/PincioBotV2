@@ -8,8 +8,6 @@ import com.pincio.telegramwebhook.service.QuestionService;
 import com.pincio.telegramwebhook.service.TelegramService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,11 +33,11 @@ public class WebhookController {
     private TelegramService telegramService;
 
     @PostMapping
-    public ResponseEntity<String> receiveMessage(@RequestBody Map<String, Object> update) {
+    public void receiveMessage(@RequestBody Map<String, Object> update) {
         try {
             Map<String, Object> message = (Map<String, Object>) update.get("message");
             if (message == null) {
-                return ResponseEntity.ok("No message found.");
+                log.info("No message found.");
             }
 
             String text = (String) message.get("text");
@@ -49,7 +47,7 @@ public class WebhookController {
             if (replyToMessage != null) {
                 // Gestione della risposta associata a una domanda
                 String questionText = (String) replyToMessage.get("text");
-                Question question = questionRepository.findById(questionText).orElse(null);
+                Question question = questionRepository.findByQuestionText(questionText);
 
                 if (question != null) {
                     // Aggiungi la risposta alla domanda in Redis
@@ -66,18 +64,20 @@ public class WebhookController {
                     telegramService.sendMessage(userId, response);
                 } else {
                     // Salva la domanda in Redis
-                    Question newQuestion = new Question();
-                    newQuestion.setQuestionText(text);
-                    questionRepository.save(newQuestion);
+                    // check se Question esiste già in Redis
+                    Question question = questionRepository.findByQuestionText(text);
+                    if (question == null) {
+                        questionService.saveQuestion(text);
+                    }
                 }
 
-                return ResponseEntity.ok("Question processed.");
+                log.info("Question processed.");
             }
 
-            return ResponseEntity.ok("Message received but not relevant.");
+            log.info("Message received but not relevant.");
         } catch (Exception e) {
             log.error("Error in receiveMessage: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing message.");
+            log.error("Error processing message.");
         }
     }
 

@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
 import java.util.Optional;
 
 @Controller
@@ -17,14 +16,6 @@ import java.util.Optional;
 public class QuestionViewController {
 
     private final QuestionRepository questionRepository;
-
-    // Visualizza tutte le domande
-    @GetMapping("/questions")
-    public String getAllQuestions(Model model) {
-        List<Question> questions = questionRepository.findAll();
-        model.addAttribute("questions", questions);
-        return "questions";
-    }
 
     // Visualizza una domanda specifica e le risposte
     @GetMapping("/question")

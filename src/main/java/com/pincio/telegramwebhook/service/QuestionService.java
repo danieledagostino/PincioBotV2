@@ -30,14 +30,15 @@ public class QuestionService {
     @Autowired
     private MaskReplacementService maskReplacementService;
 
-    public String getQuestionById(String id) {
+    public Optional<Question> getQuestionById(String id) {
         Optional<Question> question = questionRepository.findById(id);
         if (question.isPresent()) {
-            return question.get().getQuestionText();
+            return question;
         } else {
             return null;
         }
     }
+
 
     public void saveMaskedQuestion(String originalQuestion) {
         String maskedQuestion = maskReplacementService.replaceWithMask(originalQuestion);
@@ -134,11 +135,22 @@ public class QuestionService {
     }
 
     public void saveQuestion(String questionText) {
-        // Creiamo un oggetto Question con il testo della domanda
         Question question = new Question();
         question.setQuestionText(questionText);
         question.setConfirmedAnswer(null); // Inizialmente non c'è risposta confermata
         question.setConfirmed(false); // La domanda non è confermata inizialmente
+
+        // Salviamo la domanda nel repository (in Redis o un altro database)
+        questionRepository.save(question);
+    }   // Creiamo un oggetto Question con il testo della domanda
+
+    public void deleteQuestion(String id) {
+        questionRepository.deleteById(id);
+    }
+
+    public void updateQuestion(Question question) {
+        //question.setConfirmedAnswer(null); // Inizialmente non c'è risposta confermata
+        //question.setConfirmed(false); // La domanda non è confermata inizialmente
 
         // Salviamo la domanda nel repository (in Redis o un altro database)
         questionRepository.save(question);

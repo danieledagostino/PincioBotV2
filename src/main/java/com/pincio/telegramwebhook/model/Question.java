@@ -21,6 +21,8 @@ public class Question implements Serializable {
     private boolean isAnswered; // Indica se la domanda ha già ricevuto una risposta
     private List<String> replacedWords = new ArrayList<>(); // Parole sostituite con [MASK]
     private String status; // Stato della domanda (es. "Unprocessed", "Processed")
+    private boolean sentToHuggingFace = false; // Indica se la domanda è stata inviata a Hugging Face
+
 
     public void addPossibleAnswer(String answer) {
         if (!possibleAnswers.contains(answer)) {
